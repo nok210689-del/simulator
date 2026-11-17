@@ -1,402 +1,1023 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>장비 강화 시뮬레이터</title>
+<title>메이플랜드 무기 제작 & 강화 시뮬레이터</title>
 <style>
-  * { box-sizing: border-box; }
-  body {
-    font-family: 'Noto Sans KR', -apple-system, sans-serif;
-    background: #121212;
-    color: #e0e0e0;
-    margin: 0;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  h1 { margin-top: 0; margin-bottom: 15px; color: #fff; text-align: center; }
+:root {
+  --bg:#121826; --card:#1e293b; --accent:#f59e0b;
+  --text:#f8fafc; --border:#334155;
+}
+* { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard','Malgun Gothic',sans-serif; }
+body {
+  background:var(--bg); color:var(--text); min-height:100vh;
+  padding:20px; display:flex; justify-content:center;
+}
+.container {
+  display:grid; grid-template-columns:320px minmax(0,1fr);
+  gap:20px; width:100%; max-width:1250px; align-items:start;
+}
+.item-tooltip {
+  background:#050505; border:2px solid #5555ff; border-radius:8px;
+  padding:18px; box-shadow:0 0 15px #5555ff55; font-size:13px; line-height:1.7;
+  position:sticky; top:20px;
+}
+.item-header { text-align:center; border-bottom:1px dashed #666; padding-bottom:10px; margin-bottom:10px; }
+.item-name { font-size:17px; font-weight:bold; color:#ffcc00; }
+.item-category { color:#aaa; font-size:12px; }
+.item-icon-box {
+  width:70px; height:70px; border:1px solid #777;
+  background:radial-gradient(circle,#444,#111); margin:10px auto;
+  display:flex; align-items:center; justify-content:center; border-radius:6px;
+}
+.item-icon-box svg { width:48px; height:48px; }
+.item-stats { border-bottom:1px dashed #666; padding-bottom:10px; margin-bottom:10px; }
+.stat-row { display:flex; justify-content:space-between; gap:10px; }
+.stat-val { color:#66ffff; }
+.right-panel { display:flex; flex-direction:column; gap:15px; min-width:0; }
+.weapon-select {
+  background:var(--card); border:1px solid var(--border); border-radius:10px;
+  padding:14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+}
+select {
+  background:#0f172a; color:white; border:1px solid #475569;
+  border-radius:6px; padding:9px; font-size:14px;
+}
+.tab-header { display:flex; gap:8px; border-bottom:2px solid var(--border); }
+.tab-btn {
+  background:#0f172a; color:#94a3b8; border:1px solid var(--border);
+  padding:9px 16px; border-radius:6px 6px 0 0; cursor:pointer; font-weight:bold;
+}
+.tab-btn.active { background:var(--card); color:var(--accent); }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+.control-panel,.slot-section {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:12px; padding:18px; display:flex; flex-direction:column; gap:12px;
+}
+.panel-title { color:var(--accent); font-size:16px; font-weight:bold; border-bottom:1px solid var(--border); padding-bottom:8px; }
+.records,.mass-records {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
+  background:#0f172a; padding:10px; border-radius:6px; text-align:center; font-size:11px;
+}
+.mass-records { grid-template-columns:repeat(4,1fr); }
+.record-val { color:var(--accent); font-size:14px; font-weight:bold; margin-top:3px; }
+.btn-group { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+button {
+  border:0; border-radius:6px; padding:10px; color:white;
+  font-size:13px; font-weight:bold; cursor:pointer; transition:.15s;
+}
+button:hover:not(:disabled) { filter:brightness(1.12); transform:translateY(-1px); }
+button:disabled { background:#475569!important; opacity:.55; cursor:not-allowed; }
+.btn-craft { background:#10b981; grid-column:span 2; }
+.btn-auto { background:#06b6d4; grid-column:span 2; }
+.btn-scroll60 { background:#f59e0b; }
+.btn-scroll10 { background:#ef4444; }
+.btn-levelup { background:#8b5cf6; grid-column:span 2; }
+.btn-reset { background:#64748b; grid-column:span 2; }
+.log-box {
+  background:#0f172a; border:1px solid var(--border); border-radius:6px;
+  height:140px; padding:10px; overflow-y:auto; font-size:12px;
+}
+.log-entry { margin-bottom:4px; }
+.log-success { color:#4ade80; }
+.log-fail,.log-destroy { color:#f87171; }
+.log-info { color:#38bdf8; }
+.best-weapon-card {
+  background:linear-gradient(135deg,#f59e0b22,#10b98118);
+  border:1px solid var(--accent); border-radius:8px; padding:12px;
+  display:flex; flex-direction:column; gap:9px;
+}
+.best-title { color:var(--accent); font-weight:bold; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.best-stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; text-align:center; font-size:11px; }
+.best-stat-val { color:#66ffff; font-weight:bold; font-size:14px; margin-top:3px; }
 
-  .config-panel {
-    background: #1e1e2e;
-    border: 1px solid #3b4252;
-    border-radius: 12px;
-    padding: 15px 20px;
-    margin-bottom: 20px;
-    width: 100%;
-    max-width: 820px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-  }
-  .input-row {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .input-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .input-group label { font-size: 0.95rem; color: #88c0d0; font-weight: bold; }
-  .input-group input {
-    background: #2e3440;
-    border: 1px solid #4c566a;
-    color: #fff;
-    padding: 6px 10px;
-    border-radius: 6px;
-    width: 110px;
-    text-align: right;
-    font-size: 0.95rem;
-  }
+/* 대량 제작 표 */
+.mass-table-wrap {
+  width:100%;
+  overflow-x:auto;
+}
+.mass-table {
+  width:100%;
+  table-layout:fixed;
+  border-collapse:collapse;
+  font-size:10px;
+  min-width:0;
+  font-variant-numeric:tabular-nums;
+}
+.mass-table th,
+.mass-table td {
+  border:1px solid var(--border);
+  padding:6px 2px;
+  text-align:center;
+  white-space:nowrap;
+  overflow:hidden;
+}
+.mass-table th {
+  background:#0f172a;
+  color:var(--accent);
+  font-size:10px;
+}
+.mass-table td {
+  font-size:11px;
+}
+.mass-table tr:nth-child(even) {
+  background:#ffffff08;
+}
 
-  .cost-summary {
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-    background: #2b303c;
-    padding: 10px 15px;
-    border-radius: 8px;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .cost-item { font-size: 0.95rem; }
-  .cost-val { font-weight: bold; color: #ebcb8b; }
-  .total-cost { font-size: 1.1rem; color: #a3be8c; font-weight: bold; }
+/* 첫 번째 열: 번호 */
+.mass-table th:nth-child(1),
+.mass-table td:nth-child(1) {
+  width:4%;
+}
 
-  .counter-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-top: 1px solid #3b4252;
-    padding-top: 10px;
-  }
-  .counter-title { font-size: 1.1rem; color: #ebcb8b; font-weight: bold; }
+/* 두 번째 열: 상태 */
+.mass-table th:nth-child(2),
+.mass-table td:nth-child(2) {
+  width:6%;
+}
 
-  .container {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-    width: 100%;
-    max-width: 820px;
-  }
+/* 세 번째 열: 초기 공격력 */
+.mass-table th:nth-child(3),
+.mass-table td:nth-child(3) {
+  width:7%;
+}
 
-  .card {
-    background: #242933;
-    border-radius: 12px;
-    padding: 20px;
-    width: 390px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    border: 1px solid #3b4252;
-    display: flex;
-    flex-direction: column;
-  }
-  .card h3 {
-    margin-top: 0;
-    border-bottom: 2px solid #4c566a;
-    padding-bottom: 8px;
-    color: #eceff4;
-    display: flex;
-    justify-content: space-between;
-  }
+/* 마지막 열: 작수 */
+.mass-table th:nth-child(16),
+.mass-table td:nth-child(16) {
+  width:7%;
+}
 
-  .stat-list {
-    background: #2e3440;
-    padding: 12px 16px;
-    border-radius: 8px;
-    margin: 10px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-  }
-  .stat-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.95rem;
-    border-bottom: 1px dashed #3b4252;
-    padding-bottom: 4px;
-  }
-  .stat-row:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-  }
-  .stat-label { color: #d8dee9; }
-  .stat-val { font-weight: bold; color: #a3be8c; }
-  .stat-locked { font-weight: bold; color: #bf616a; }
-  .chance-row {
-    background: #3b4252;
-    padding: 6px 10px;
-    border-radius: 6px;
-    margin-top: 3px;
-  }
-  .chance-val { font-weight: bold; color: #ebcb8b; }
+.status-ok { color:#4ade80; font-weight:bold; }
+.status-destroyed { color:#f87171; font-weight:bold; }
 
-  .btn-group {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-  }
+.slot-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:8px; }
+.slot-card { background:#0f172a; border:1px solid var(--border); border-radius:6px; padding:10px; text-align:center; font-size:12px; display:flex; flex-direction:column; gap:7px; }
+.slot-title { color:var(--accent); font-weight:bold; }
+.slot-info { color:#94a3b8; min-height:40px; line-height:1.4; display:flex; justify-content:center; align-items:center; }
+.slot-btns { display:flex; gap:4px; }
+.slot-btns button { flex:1; padding:6px 3px; font-size:11px; }
+.btn-save { background:#059669; }
+.btn-load { background:#2563eb; }
+.btn-del { background:#dc2626; }
+.small-note { color:#94a3b8; font-size:11px; line-height:1.5; }
 
-  button {
-    flex: 1;
-    padding: 10px;
-    border: none;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.2s, opacity 0.2s;
-  }
-
-  .btn-upgrade { background: #a3be8c; color: #2e3440; font-size: 1rem; }
-  .btn-upgrade:hover { background: #8fbcbb; }
-
-  .btn-reset { background: #bf616a; color: #eceff4; }
-  .btn-reset:hover { background: #d08770; }
-
-  .btn-small {
-    padding: 6px 12px;
-    font-size: 0.85rem;
-    background: #ebcb8b;
-    color: #2e3440;
-  }
-  .btn-small:hover { background: #d08770; color: #fff; }
-
-  button:disabled {
-    background: #4c566a !important;
-    color: #d8dee9 !important;
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .log-box {
-    background: #1b1e23;
-    height: 120px;
-    overflow-y: auto;
-    padding: 8px 10px;
-    border-radius: 6px;
-    font-size: 0.82rem;
-    font-family: monospace;
-    margin-top: 12px;
-    border: 1px solid #3b4252;
-  }
-  .log-item { margin-bottom: 3px; border-bottom: 1px dashed #2e3440; padding-bottom: 2px; }
-  .success { color: #a3be8c; }
-  .fail { color: #bf616a; }
-  .info { color: #88c0d0; }
-  .warn { color: #ebcb8b; }
+@media(max-width:850px) {
+  .container { grid-template-columns:1fr; }
+  .item-tooltip { position:static; }
+  .mass-table { min-width:850px; }
+}
+@media(max-width:500px) {
+  body { padding:8px; }
+  .control-panel,.slot-section { padding:12px; }
+  .slot-grid { grid-template-columns:1fr; }
+  .best-stats-grid { grid-template-columns:repeat(2,1fr); }
+}
 </style>
 </head>
 <body>
 
-<h1>🎲 장비 강화 시뮬레이터</h1>
-
-<div class="config-panel">
-  <div class="input-row">
-    <div class="input-group">
-      <label for="cost-upgrade">1회 강화 비용:</label>
-      <input type="number" id="cost-upgrade" value="1000" min="0" oninput="calcTotal()">
-    </div>
-    <div class="input-group">
-      <label for="cost-equip">장비 1개 가격:</label>
-      <input type="number" id="cost-equip" value="5000" min="0" oninput="calcTotal()">
-    </div>
-  </div>
-
-  <div class="cost-summary">
-    <div class="cost-item">총 강화 시도 (주문서): <span class="cost-val" id="total-upgrades">0</span>회</div>
-    <div class="cost-item">구매한 장비 수: <span class="cost-val" id="total-equips">2</span>개</div>
-    <div class="cost-item">총 소요 비용: <span class="total-cost" id="total-cost">0</span></div>
-  </div>
-
-  <div class="counter-header">
-    <div class="counter-title">통합 초기화 횟수: <span id="global-reset-count" style="color: #eceff4;">0</span>회</div>
-    <button class="btn-small" onclick="resetGlobalCount()">카운트 0으로 리셋</button>
-  </div>
-</div>
-
 <div class="container">
-  <!-- 장비 A -->
-  <div class="card">
-    <h3>장비 A</h3>
-    <div class="stat-list">
-      <div class="stat-row"><span class="stat-label">STR</span><span id="str-a">3</span></div>
-      <div class="stat-row"><span class="stat-label">DEX</span><span id="dex-a">3</span></div>
-      <div class="stat-row"><span class="stat-label">INT</span><span id="int-a">3</span></div>
-      <div class="stat-row"><span class="stat-label">LUK</span><span id="luk-a">3</span></div>
-      <div class="stat-row"><span class="stat-label">공격력</span><span id="atk-a">1</span></div>
-      <div class="stat-row"><span class="stat-label">마력</span><span id="matk-a">4</span></div>
-      <div class="stat-row"><span class="stat-label">물리방어력</span><span id="pdef-a">50</span></div>
-      <div class="stat-row"><span class="stat-label">마법방어력</span><span id="mdef-a">50</span></div>
-      <div class="stat-row"><span class="stat-label">회피율</span><span id="avoid-a">15</span></div>
-      <div class="stat-row chance-row"><span class="stat-label">남은 기회</span><span class="chance-val" id="chance-a">3 / 3</span></div>
+  <div class="item-tooltip">
+    <div class="item-header">
+      <div class="item-name" id="display-name">리버스 엔가우</div>
+      <div class="item-category" id="item-category">REQ LEV : 120 / 무기 분류 : 활</div>
     </div>
-    <div class="btn-group">
-      <button class="btn-upgrade" id="btn-up-a" onclick="upgrade('a')">강화 시도 (60%)</button>
+
+    <div class="item-icon-box">
+      <svg viewBox="0 0 24 24">
+        <path d="M18 2 C18 2 22 6 22 12 C22 18 18 22 18 22 M18 2 L16 4 M18 22 L16 20 M6 12 L18 12 M2 12 L6 16"
+          stroke="#ffcc00" stroke-width="2" fill="none"/>
+      </svg>
     </div>
-    <div class="btn-group">
-      <button class="btn-reset" onclick="resetItem('a')">장비 A 초기화</button>
+
+    <div class="item-stats">
+      <div class="stat-row"><span>장비 레벨</span><span class="stat-val" id="stat-level">Lv.0 / 3</span></div>
+      <div class="stat-row"><span>공격력</span><span class="stat-val" id="stat-att">+108</span></div>
+      <div class="stat-row"><span id="main-label">DEX (주스탯)</span><span class="stat-val" id="stat-main">+5</span></div>
+      <div class="stat-row"><span id="sub-label">STR (보조스탯)</span><span class="stat-val" id="stat-sub">+0</span></div>
+      <div class="stat-row"><span>명중률</span><span class="stat-val" id="stat-acc">+0</span></div>
+      <div class="stat-row"><span>회피율</span><span class="stat-val" id="stat-eva">+5</span></div>
     </div>
-    <div class="log-box" id="log-a"></div>
+
+    <div class="stat-row"><span>업그레이드 가능 횟수</span><span class="stat-val" id="stat-slots">7</span></div>
+    <div class="stat-row"><span>상태</span><span class="stat-val" id="stat-status">미제작</span></div>
   </div>
 
-  <!-- 장비 B -->
-  <div class="card">
-    <h3>장비 B</h3>
-    <div class="stat-list">
-      <div class="stat-row"><span class="stat-label">STR</span><span id="str-b">3</span></div>
-      <div class="stat-row"><span class="stat-label">DEX</span><span id="dex-b">3</span></div>
-      <div class="stat-row"><span class="stat-label">INT</span><span id="int-b">3</span></div>
-      <div class="stat-row"><span class="stat-label">LUK</span><span id="luk-b">3</span></div>
-      <div class="stat-row"><span class="stat-label">공격력</span><span id="atk-b">1</span></div>
-      <div class="stat-row"><span class="stat-label">마력</span><span id="matk-b">4</span></div>
-      <div class="stat-row"><span class="stat-label">물리방어력</span><span id="pdef-b">50</span></div>
-      <div class="stat-row"><span class="stat-label">마법방어력</span><span id="mdef-b">50</span></div>
-      <div class="stat-row"><span class="stat-label">회피율</span><span id="avoid-b">15</span></div>
-      <div class="stat-row chance-row"><span class="stat-label">남은 기회</span><span class="chance-val" id="chance-b">3 / 3</span></div>
+  <div class="right-panel">
+    <div class="weapon-select">
+      <strong>무기 선택</strong>
+      <select id="weapon-select" onchange="changeWeapon(this.value)">
+        <option value="engau">리버스 엔가우</option>
+        <option value="niflheim">니플하임</option>
+        <option value="lampion">람피온</option>
+      </select>
+      <span class="small-note" id="weapon-description">공격력 108 / DEX 5 / STR 0</span>
     </div>
-    <div class="btn-group">
-      <button class="btn-upgrade" id="btn-up-b" onclick="upgrade('b')">강화 시도 (60%)</button>
+
+    <div class="tab-header">
+      <button class="tab-btn active" onclick="switchTab('single')">단일 시뮬레이터</button>
+      <button class="tab-btn" onclick="switchTab('mass')">10개 대량 제작</button>
     </div>
-    <div class="btn-group">
-      <button class="btn-reset" onclick="resetItem('b')">장비 B 초기화</button>
+
+    <div id="tab-single" class="tab-content active">
+      <div class="control-panel">
+        <div class="panel-title" id="single-title">리버스 엔가우 제작 & 강화</div>
+
+        <div class="records">
+          <div>시도 횟수<div class="record-val" id="rec-crafts">0</div></div>
+          <div>최고 공격력<div class="record-val" id="rec-max-att">0</div></div>
+          <div>최고 주스탯<div class="record-val" id="rec-max-main">0</div></div>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn-craft" id="btn-craft">90% 제작 시도</button>
+          <button class="btn-scroll60" id="btn-scroll60" disabled>60% 주문서</button>
+          <button class="btn-scroll10" id="btn-scroll10" disabled>10% 주문서</button>
+          <button class="btn-levelup" id="btn-levelup" disabled>장비 레벨업 (최대 3회)</button>
+          <button class="btn-auto" id="btn-auto" disabled>⚡ 60%작 7회 + 레벨업 3회 자동 진행</button>
+          <button class="btn-reset" id="btn-reset">단일 시뮬레이터 초기화</button>
+        </div>
+
+        <div class="log-box" id="log-box">
+          <div class="log-entry log-info">[시스템] 무기를 선택하고 제작을 시작하세요.</div>
+        </div>
+      </div>
     </div>
-    <div class="log-box" id="log-b"></div>
+
+    <div id="tab-mass" class="tab-content">
+      <div class="control-panel">
+        <div class="panel-title">10개 연속 제작 및 Lv.MAX 풀강화</div>
+
+        <div class="mass-records">
+          <div>누적 제작 수<div class="record-val" id="mass-total-count">0개</div></div>
+          <div>평균 공격력<div class="record-val" id="mass-avg-att">0</div></div>
+          <div>평균 주스탯<div class="record-val" id="mass-avg-main">0</div></div>
+          <div>평균 보조스탯<div class="record-val" id="mass-avg-sub">0</div></div>
+        </div>
+
+        <div class="best-weapon-card">
+          <div class="best-title">
+            <span>👑 통산 최고 스탯 무기</span>
+            <button style="padding:5px 8px;background:#059669;font-size:11px" onclick="loadBestWeaponToSimulator()">단일 시뮬로 가져오기</button>
+          </div>
+          <div class="best-stats-grid">
+            <div>명칭<div class="best-stat-val" id="best-name">-</div></div>
+            <div>공격력<div class="best-stat-val" id="best-att">0</div></div>
+            <div id="best-main-label">주스탯<div class="best-stat-val" id="best-main">0</div></div>
+            <div id="best-sub-label">보조스탯<div class="best-stat-val" id="best-sub">0</div></div>
+          </div>
+        </div>
+
+        <button class="btn-craft" onclick="craftTenItems()">90% 제작 10개 + 60%작 7회 + 레벨업 3회 자동 풀강화</button>
+        <button class="btn-reset" onclick="resetMassData()">대량 제작 기록 초기화</button>
+
+        <div class="small-note">
+          성공한 장비는 모두 60% 주문서 7회 시도 후 레벨업 3회까지 진행합니다.
+          레벨업 증가량은 Lv.1, Lv.2, Lv.MAX 단계별로 표시됩니다.
+        </div>
+
+        <div class="mass-table-wrap">
+          <table class="mass-table">
+            <thead>
+              <tr>
+                <th rowspan="2">#</th>
+                <th rowspan="2">상태</th>
+                <th rowspan="2">초기 공격력</th>
+                <th colspan="3">Lv.MAX 최종 스탯</th>
+                <th colspan="3">Lv.1 증가량</th>
+                <th colspan="3">Lv.2 증가량</th>
+                <th colspan="3">Lv.MAX 증가량</th>
+                <th rowspan="2">작수</th>
+              </tr>
+              <tr>
+                <th>공격력</th><th id="th-final-main">DEX</th><th id="th-final-sub">STR</th>
+                <th>공격력</th><th id="th-lv1-main">DEX</th><th id="th-lv1-sub">STR</th>
+                <th>공격력</th><th id="th-lv2-main">DEX</th><th id="th-lv2-sub">STR</th>
+                <th>공격력</th><th id="th-lv3-main">DEX</th><th id="th-lv3-sub">STR</th>
+              </tr>
+            </thead>
+            <tbody id="mass-table-body">
+              <tr><td colspan="16" style="color:#94a3b8">버튼을 눌러 10개 연속 제작을 시작해보세요.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="slot-section">
+      <div class="panel-title">장비 보관 슬롯 (최대 3개)</div>
+      <div class="slot-grid">
+        <div class="slot-card">
+          <div class="slot-title">슬롯 1</div>
+          <div class="slot-info" id="slot-info-0">비어 있음</div>
+          <div class="slot-btns">
+            <button class="btn-save" onclick="saveToSlot(0)">저장</button>
+            <button class="btn-load" onclick="loadFromSlot(0)">불러오기</button>
+            <button class="btn-del" onclick="deleteSlot(0)">삭제</button>
+          </div>
+        </div>
+        <div class="slot-card">
+          <div class="slot-title">슬롯 2</div>
+          <div class="slot-info" id="slot-info-1">비어 있음</div>
+          <div class="slot-btns">
+            <button class="btn-save" onclick="saveToSlot(1)">저장</button>
+            <button class="btn-load" onclick="loadFromSlot(1)">불러오기</button>
+            <button class="btn-del" onclick="deleteSlot(1)">삭제</button>
+          </div>
+        </div>
+        <div class="slot-card">
+          <div class="slot-title">슬롯 3</div>
+          <div class="slot-info" id="slot-info-2">비어 있음</div>
+          <div class="slot-btns">
+            <button class="btn-save" onclick="saveToSlot(2)">저장</button>
+            <button class="btn-load" onclick="loadFromSlot(2)">불러오기</button>
+            <button class="btn-del" onclick="deleteSlot(2)">삭제</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-  const initStats = () => ({
-    str: { val: 3, locked: false },
-    dex: { val: 3, locked: false },
-    int: { val: 3, locked: false },
-    luk: { val: 3, locked: false },
-    atk: { val: 1, locked: false },
-    matk: { val: 4, locked: false },
-    pdef: { val: 50, locked: false },
-    mdef: { val: 50, locked: false },
-    avoid: { val: 15, locked: false }
-  });
+const WEAPONS = {
+  engau: {
+    name:'리버스 엔가우',
+    baseAtt:108, mainKey:'dex', mainName:'DEX',
+    subKey:'str', subName:'STR',
+    baseMain:5, baseSub:0, acc:0, eva:5,
+    category:'REQ LEV : 120 / 무기 분류 : 활'
+  },
+  niflheim: {
+    name:'니플하임',
+    baseAtt:113, mainKey:'str', mainName:'STR',
+    subKey:'dex', subName:'DEX',
+    baseMain:5, baseSub:5, acc:0, eva:0,
+    category:'무기 분류 : 무기'
+  },
+  lampion: {
+    name:'람피온',
+    baseAtt:57, mainKey:'luk', mainName:'LUK',
+    subKey:'dex', subName:'DEX',
+    baseMain:5, baseSub:5, acc:0, eva:0,
+    category:'무기 분류 : 단검'
+  }
+};
 
-  const state = {
-    a: { stats: initStats(), chance: 3 },
-    b: { stats: initStats(), chance: 3 }
+let weaponKey = 'engau';
+let weapon = WEAPONS[weaponKey];
+
+let isCrafted = false;
+let isDestroyed = false;
+let currentStats = {};
+let upgradeSlots = 7;
+let successCount = 0;
+let itemLevel = 0;
+
+let totalCrafts = 0;
+let maxAtt = 0;
+let maxMain = 0;
+
+let massTotalCrafts = 0;
+let massSuccessItems = [];
+let massResults = [];
+let bestWeapon = null;
+
+let savedSlots = [null,null,null];
+
+const $ = id => document.getElementById(id);
+
+const displayName = $('display-name');
+const statLevel = $('stat-level');
+const statAtt = $('stat-att');
+const statMain = $('stat-main');
+const statSub = $('stat-sub');
+const statAcc = $('stat-acc');
+const statEva = $('stat-eva');
+const statSlots = $('stat-slots');
+const statStatus = $('stat-status');
+
+const btnCraft = $('btn-craft');
+const btnScroll60 = $('btn-scroll60');
+const btnScroll10 = $('btn-scroll10');
+const btnLevelup = $('btn-levelup');
+const btnAuto = $('btn-auto');
+const btnReset = $('btn-reset');
+const logBox = $('log-box');
+
+function baseStatsFor(w = weapon) {
+  return {
+    att:w.baseAtt,
+    [w.mainKey]:w.baseMain,
+    [w.subKey]:w.baseSub,
+    acc:w.acc,
+    eva:w.eva
   };
+}
 
-  let totalUpgrades = 0;
-  let totalEquips = 2; // 초기 기본 장비 2개
-  let globalResetCount = 0;
+function getMain(stats, w = weapon) {
+  return stats[w.mainKey] ?? 0;
+}
 
-  const statKeys = ['str', 'dex', 'int', 'luk', 'atk', 'matk', 'pdef', 'mdef', 'avoid'];
+function getSub(stats, w = weapon) {
+  return stats[w.subKey] ?? 0;
+}
 
-  function log(item, msg, type = '') {
-    const logBox = document.getElementById(`log-${item}`);
-    const div = document.createElement('div');
-    div.className = `log-item ${type}`;
-    div.innerText = msg;
-    logBox.prepend(div);
+function changeWeapon(key) {
+  if (!WEAPONS[key]) return;
+
+  weaponKey = key;
+  weapon = WEAPONS[key];
+
+  isCrafted = false;
+  isDestroyed = false;
+  currentStats = baseStatsFor();
+  upgradeSlots = 7;
+  successCount = 0;
+  itemLevel = 0;
+
+  totalCrafts = 0;
+  maxAtt = 0;
+  maxMain = 0;
+
+  logBox.innerHTML = '<div class="log-entry log-info">[시스템] 무기가 변경되었습니다. 제작을 시작하세요.</div>';
+
+  updateWeaponLabels();
+  updateUI();
+  updateMassStats();
+}
+
+function updateWeaponLabels() {
+  $('weapon-description').textContent =
+    `공격력 ${weapon.baseAtt} / ${weapon.mainName} ${weapon.baseMain} / ${weapon.subName} ${weapon.baseSub}`;
+
+  $('item-category').textContent = weapon.category;
+  $('main-label').textContent = `${weapon.mainName} (주스탯)`;
+  $('sub-label').textContent = `${weapon.subName} (보조스탯)`;
+
+  $('single-title').textContent = `${weapon.name} 제작 & 강화`;
+
+  $('th-final-main').textContent = weapon.mainName;
+  $('th-lv1-main').textContent = weapon.mainName;
+  $('th-lv2-main').textContent = weapon.mainName;
+  $('th-lv3-main').textContent = weapon.mainName;
+
+  $('th-final-sub').textContent = weapon.subName;
+  $('th-lv1-sub').textContent = weapon.subName;
+  $('th-lv2-sub').textContent = weapon.subName;
+  $('th-lv3-sub').textContent = weapon.subName;
+
+  $('best-main-label').innerHTML =
+    `${weapon.mainName}<div class="best-stat-val" id="best-main">0</div>`;
+  $('best-sub-label').innerHTML =
+    `${weapon.subName}<div class="best-stat-val" id="best-sub">0</div>`;
+}
+
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+  const index = tabName === 'single' ? 0 : 1;
+  document.querySelectorAll('.tab-btn')[index].classList.add('active');
+  $(`tab-${tabName}`).classList.add('active');
+}
+
+function addLog(msg,type='info') {
+  const entry = document.createElement('div');
+  entry.className = `log-entry log-${type}`;
+  entry.textContent = msg;
+  logBox.appendChild(entry);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+function updateUI() {
+  if (isDestroyed) {
+    displayName.textContent = '파괴된 장비';
+    statStatus.textContent = '파괴됨';
+    statStatus.style.color = '#ef4444';
+    btnScroll60.disabled = true;
+    btnScroll10.disabled = true;
+    btnLevelup.disabled = true;
+    btnAuto.disabled = true;
+    return;
   }
 
-  function calcTotal() {
-    const upCost = parseInt(document.getElementById('cost-upgrade').value) || 0;
-    const eqCost = parseInt(document.getElementById('cost-equip').value) || 0;
-    
-    document.getElementById('total-upgrades').innerText = totalUpgrades.toLocaleString();
-    document.getElementById('total-equips').innerText = totalEquips.toLocaleString();
-    
-    const sum = (totalUpgrades * upCost) + (totalEquips * eqCost);
-    document.getElementById('total-cost').innerText = sum.toLocaleString();
-    document.getElementById('global-reset-count').innerText = globalResetCount.toLocaleString();
+  if (!isCrafted) {
+    displayName.textContent = weapon.name;
+    statLevel.textContent = 'Lv.0 / 3';
+    statAtt.textContent = `+${weapon.baseAtt}`;
+    statMain.textContent = `+${weapon.baseMain}`;
+    statSub.textContent = `+${weapon.baseSub}`;
+    statAcc.textContent = `+${weapon.acc}`;
+    statEva.textContent = `+${weapon.eva}`;
+    statSlots.textContent = '7';
+    statStatus.textContent = '미제작';
+    statStatus.style.color = '#aaa';
+
+    btnScroll60.disabled = true;
+    btnScroll10.disabled = true;
+    btnLevelup.disabled = true;
+    btnAuto.disabled = true;
+  } else {
+    displayName.textContent =
+      successCount > 0 ? `+${successCount} ${weapon.name}` : weapon.name;
+
+    statLevel.textContent = `Lv.${itemLevel} / 3`;
+    statAtt.textContent = `+${currentStats.att}`;
+    statMain.textContent = `+${getMain(currentStats)}`;
+    statSub.textContent = `+${getSub(currentStats)}`;
+    statAcc.textContent = `+${currentStats.acc}`;
+    statEva.textContent = `+${currentStats.eva}`;
+    statSlots.textContent = upgradeSlots;
+    statStatus.textContent = '착용 가능';
+    statStatus.style.color = '#4ade80';
+
+    btnScroll60.disabled = upgradeSlots <= 0;
+    btnScroll10.disabled = upgradeSlots <= 0;
+    btnLevelup.disabled = itemLevel >= 3;
+    btnAuto.disabled = upgradeSlots <= 0 && itemLevel >= 3;
+
+    maxAtt = Math.max(maxAtt,currentStats.att);
+    maxMain = Math.max(maxMain,getMain(currentStats));
   }
 
-  function updateUI(item) {
-    const st = state[item].stats;
-    statKeys.forEach(k => {
-      const el = document.getElementById(`${k}-${item}`);
-      if (st[k].locked) {
-        el.className = 'stat-locked';
-        el.innerText = '🔒 0 (파괴)';
-      } else {
-        el.className = 'stat-val';
-        el.innerText = st[k].val;
-      }
-    });
+  $('rec-crafts').textContent = totalCrafts;
+  $('rec-max-att').textContent = maxAtt;
+  $('rec-max-main').textContent = maxMain;
+}
 
-    document.getElementById(`chance-${item}`).innerText = `${state[item].chance} / 3`;
+function rollCraftStats() {
+  const bonusAtt = Math.floor(Math.random() * 6);
+  const stats = baseStatsFor();
+  stats.att += bonusAtt;
+  return {stats,bonusAtt};
+}
 
-    const btn = document.getElementById(`btn-up-${item}`);
-    btn.disabled = state[item].chance <= 0;
-    calcTotal();
+// 90% 제작
+btnCraft.addEventListener('click',() => {
+  totalCrafts++;
+
+  if (Math.random() * 100 < 10) {
+    isCrafted = false;
+    isDestroyed = true;
+    addLog('[제작 실패] 10% 확률로 장비가 파괴되었습니다.','destroy');
+  } else {
+    isCrafted = true;
+    isDestroyed = false;
+    upgradeSlots = 7;
+    successCount = 0;
+    itemLevel = 0;
+
+    const result = rollCraftStats();
+    currentStats = result.stats;
+
+    addLog(
+      `[제작 성공] ${weapon.name} 제작! 기본 공격력 ${weapon.baseAtt} + 추옵 ${result.bonusAtt} = ${currentStats.att}`,
+      'success'
+    );
   }
 
-  function upgrade(item) {
-    if (state[item].chance <= 0) return;
+  updateUI();
+});
 
-    state[item].chance--;
-    totalUpgrades++;
-    const isSuccess = Math.random() < 0.6; // 60% 확률
+// 60% 주문서
+btnScroll60.addEventListener('click',() => {
+  if (!isCrafted || upgradeSlots <= 0) return;
 
-    if (isSuccess) {
-      let newlyLocked = [];
+  upgradeSlots--;
 
-      statKeys.forEach(k => {
-        const statObj = state[item].stats[k];
+  if (Math.random() * 100 < 60) {
+    successCount++;
+    currentStats.att += 2;
+    currentStats.acc += 1;
+    addLog('[60% 성공] 공격력 +2, 명중률 +1','success');
+  } else {
+    addLog('[60% 실패] 주문서 실패','fail');
+  }
 
-        if (statObj.locked) return;
+  updateUI();
+});
 
-        // -5 ~ +5 균등 확률 (각 1/11)
-        const delta = Math.floor(Math.random() * 11) - 5;
-        statObj.val += delta;
+// 10% 주문서
+btnScroll10.addEventListener('click',() => {
+  if (!isCrafted || upgradeSlots <= 0) return;
 
-        if (statObj.val <= 0) {
-          statObj.val = 0;
-          statObj.locked = true;
-          newlyLocked.push(k.toUpperCase());
-        }
+  upgradeSlots--;
+
+  if (Math.random() * 100 < 10) {
+    successCount++;
+    currentStats.att += 5;
+    currentStats[weapon.mainKey] += 1;
+    currentStats.acc += 3;
+
+    addLog(
+      `[10% 성공] 공격력 +5, ${weapon.mainName} +1, 명중률 +3`,
+      'success'
+    );
+  } else {
+    addLog('[10% 실패] 주문서 실패','fail');
+  }
+
+  updateUI();
+});
+
+// 레벨업 1회
+function applyOneLevel(stats,level) {
+  const att = Math.floor(Math.random() * 3);
+  const main = Math.floor(Math.random() * 2) + 1;
+  const sub = Math.floor(Math.random() * 2);
+
+  stats.att += att;
+  stats[weapon.mainKey] += main;
+  stats[weapon.subKey] += sub;
+
+  return {att,main,sub,level};
+}
+
+btnLevelup.addEventListener('click',() => {
+  if (!isCrafted || itemLevel >= 3) return;
+
+  itemLevel++;
+  const gain = applyOneLevel(currentStats,itemLevel);
+
+  const levelName = itemLevel === 3 ? 'Lv.MAX' : `Lv.${itemLevel}`;
+  addLog(
+    `[${levelName}] 공격력 +${gain.att}, ${weapon.mainName} +${gain.main}, ${weapon.subName} +${gain.sub}`,
+    'info'
+  );
+
+  updateUI();
+});
+
+// 단일 자동 풀강화
+btnAuto.addEventListener('click',() => {
+  if (!isCrafted || isDestroyed) return;
+
+  let scrollSuccess = 0;
+
+  while (upgradeSlots > 0) {
+    upgradeSlots--;
+
+    if (Math.random() * 100 < 60) {
+      scrollSuccess++;
+      successCount++;
+      currentStats.att += 2;
+      currentStats.acc += 1;
+    }
+  }
+
+  const gains = [];
+  while (itemLevel < 3) {
+    itemLevel++;
+    gains.push(applyOneLevel(currentStats,itemLevel));
+  }
+
+  const levelText = gains.map(g => {
+    const name = g.level === 3 ? 'MAX' : g.level;
+    return `Lv.${name} 공+${g.att}/${weapon.mainName}+${g.main}/${weapon.subName}+${g.sub}`;
+  }).join(' | ');
+
+  addLog(
+    `[자동 풀강화] 60% ${scrollSuccess}회 성공 / ${levelText}`,
+    'success'
+  );
+
+  updateUI();
+});
+
+// 단일 초기화
+btnReset.addEventListener('click',() => {
+  isCrafted = false;
+  isDestroyed = false;
+  currentStats = baseStatsFor();
+  upgradeSlots = 7;
+  successCount = 0;
+  itemLevel = 0;
+
+  totalCrafts = 0;
+  maxAtt = 0;
+  maxMain = 0;
+
+  logBox.innerHTML = '<div class="log-entry log-info">[시스템] 단일 시뮬레이터 초기화 완료.</div>';
+  updateUI();
+});
+
+// 대량 제작 10개 - 항상 Lv.MAX까지 자동 강화
+function craftTenItems() {
+  massResults = [];
+  massTotalCrafts += 10;
+
+  for (let i = 1; i <= 10; i++) {
+    const index = massTotalCrafts - 10 + i;
+
+    if (Math.random() * 100 < 10) {
+      massResults.push({
+        idx:index,
+        status:'파괴됨',
+        baseAtt:'-',
+        att:'-',main:'-',sub:'-',
+        lv1Att:'-',lv1Main:'-',lv1Sub:'-',
+        lv2Att:'-',lv2Main:'-',lv2Sub:'-',
+        lv3Att:'-',lv3Main:'-',lv3Sub:'-',
+        scroll:'-'
       });
-
-      let msg = `강화 성공! (남은 기회: ${state[item].chance})`;
-      if (newlyLocked.length > 0) {
-        msg += ` ⚠️ 파괴된 옵션: ${newlyLocked.join(', ')}`;
-        log(item, msg, 'warn');
-      } else {
-        log(item, msg, 'success');
-      }
-    } else {
-      log(item, `강화 실패! 스탯 변동 없음 (남은 기회: ${state[item].chance})`, 'fail');
+      continue;
     }
 
-    updateUI(item);
+    const result = rollCraftStats();
+    const item = {...result.stats};
+
+    // 제작 직후 초기 공격력만 저장
+    const baseAtt = item.att;
+
+    let scrollSuccess = 0;
+
+    // 60% 주문서 7회
+    for (let s = 0; s < 7; s++) {
+      if (Math.random() * 100 < 60) {
+        scrollSuccess++;
+        item.att += 2;
+        item.acc += 1;
+      }
+    }
+
+    // 레벨업 3회, 단계별 증가량 저장
+    const lv1 = applyOneLevel(item,1);
+    const lv2 = applyOneLevel(item,2);
+    const lv3 = applyOneLevel(item,3);
+
+    const finalMain = getMain(item);
+    const finalSub = getSub(item);
+
+    const itemObj = {
+      weaponKey,
+      name:weapon.name,
+      stats:{...item},
+      upgradeSlots:0,
+      successCount:scrollSuccess,
+      itemLevel:3
+    };
+
+    // 최고 무기 비교: 공격력 우선, 주스탯 다음
+    if (
+      !bestWeapon ||
+      item.att > bestWeapon.stats.att ||
+      (item.att === bestWeapon.stats.att &&
+       finalMain > getMain(bestWeapon.stats,WEAPONS[bestWeapon.weaponKey]))
+    ) {
+      bestWeapon = itemObj;
+    }
+
+    massSuccessItems.push({
+      att:item.att,
+      main:finalMain,
+      sub:finalSub
+    });
+
+    massResults.push({
+      idx:index,
+      status:'성공',
+      baseAtt,
+      att:item.att,
+      main:finalMain,
+      sub:finalSub,
+      lv1Att:lv1.att,
+      lv1Main:lv1.main,
+      lv1Sub:lv1.sub,
+      lv2Att:lv2.att,
+      lv2Main:lv2.main,
+      lv2Sub:lv2.sub,
+      lv3Att:lv3.att,
+      lv3Main:lv3.main,
+      lv3Sub:lv3.sub,
+      scroll:`+${scrollSuccess}작`
+    });
   }
 
-  function resetItem(item) {
-    state[item].stats = initStats();
-    state[item].chance = 3;
-    globalResetCount++;
-    totalEquips++;
-    
-    const name = item === 'a' ? '장비 A' : '장비 B';
-    log(item, `${name} 초기화 완료 (통합 초기화: ${globalResetCount}회)`, 'info');
-    updateUI(item);
+  renderMassTable();
+  updateMassStats();
+  updateUI();
+}
+
+function renderMassTable() {
+  const tbody = $('mass-table-body');
+  tbody.innerHTML = '';
+
+  massResults.forEach(res => {
+    const tr = document.createElement('tr');
+    const ok = res.status === '성공';
+
+    const values = [
+      res.idx,
+      res.status,
+      res.baseAtt,
+      res.att,res.main,res.sub,
+      res.lv1Att,res.lv1Main,res.lv1Sub,
+      res.lv2Att,res.lv2Main,res.lv2Sub,
+      res.lv3Att,res.lv3Main,res.lv3Sub,
+      res.scroll
+    ];
+
+    values.forEach((value,index) => {
+      const td = document.createElement('td');
+      td.textContent = value;
+
+      // 숫자 폭을 일정하게 정렬
+      if (index !== 1 && index !== 16) {
+        td.style.fontVariantNumeric = 'tabular-nums';
+        td.style.textAlign = 'center';
+      }
+
+      if (index === 1) {
+        td.className = ok ? 'status-ok' : 'status-destroyed';
+      }
+
+      if (index === 3) {
+        td.style.color = '#66ffff';
+        td.style.fontWeight = 'bold';
+      }
+
+      if (index === 15 && ok) {
+        td.style.color = '#f59e0b';
+        td.style.fontWeight = 'bold';
+      }
+
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+function updateMassStats() {
+  $('mass-total-count').textContent = `${massTotalCrafts}개`;
+
+  if (bestWeapon) {
+    const bestConfig = WEAPONS[bestWeapon.weaponKey];
+
+    $('best-name').textContent =
+      `${bestWeapon.name} (Lv.${bestWeapon.itemLevel})`;
+    $('best-att').textContent = bestWeapon.stats.att;
+    $('best-main').textContent = bestWeapon.stats[bestConfig.mainKey];
+    $('best-sub').textContent = bestWeapon.stats[bestConfig.subKey];
+  } else {
+    $('best-name').textContent = '-';
+    $('best-att').textContent = '0';
+    $('best-main').textContent = '0';
+    $('best-sub').textContent = '0';
   }
 
-  // 통합 초기화 시 카운트, 강화 시도, 구매 장비 개수 모두 초기화
-  function resetGlobalCount() {
-    globalResetCount = 0;
-    totalUpgrades = 0;
-    totalEquips = 2; // 기본 2개 상태로 초기화
-    
-    log('a', '통합 카운트, 총 강화 시도 및 장비 수량이 리셋되었습니다.', 'info');
-    log('b', '통합 카운트, 총 강화 시도 및 장비 수량이 리셋되었습니다.', 'info');
-    calcTotal();
+  if (!massSuccessItems.length) {
+    $('mass-avg-att').textContent = '0';
+    $('mass-avg-main').textContent = '0';
+    $('mass-avg-sub').textContent = '0';
+    return;
   }
 
-  updateUI('a');
-  updateUI('b');
+  const count = massSuccessItems.length;
+
+  const avgAtt = massSuccessItems.reduce((a,b) => a+b.att,0) / count;
+  const avgMain = massSuccessItems.reduce((a,b) => a+b.main,0) / count;
+  const avgSub = massSuccessItems.reduce((a,b) => a+b.sub,0) / count;
+
+  $('mass-avg-att').textContent = avgAtt.toFixed(1);
+  $('mass-avg-main').textContent = avgMain.toFixed(1);
+  $('mass-avg-sub').textContent = avgSub.toFixed(1);
+}
+
+function loadBestWeaponToSimulator() {
+  if (!bestWeapon) {
+    alert('아직 대량 제작된 최고 스탯 무기가 없습니다.');
+    return;
+  }
+
+  weaponKey = bestWeapon.weaponKey;
+  weapon = WEAPONS[weaponKey];
+  $('weapon-select').value = weaponKey;
+
+  isCrafted = true;
+  isDestroyed = false;
+  currentStats = {...bestWeapon.stats};
+  upgradeSlots = bestWeapon.upgradeSlots;
+  successCount = bestWeapon.successCount;
+  itemLevel = bestWeapon.itemLevel;
+
+  updateWeaponLabels();
+  updateUI();
+  switchTab('single');
+
+  addLog('[최고 무기 불러오기] 대량 제작 최고 무기를 불러왔습니다.','success');
+}
+
+function resetMassData() {
+  massTotalCrafts = 0;
+  massSuccessItems = [];
+  massResults = [];
+  bestWeapon = null;
+
+  $('mass-table-body').innerHTML =
+    '<tr><td colspan="16" style="color:#94a3b8">버튼을 눌러 10개 연속 제작을 시작해보세요.</td></tr>';
+
+  updateMassStats();
+}
+
+// 슬롯 저장
+function saveToSlot(slotIdx) {
+  if (!isCrafted) {
+    alert('제작 완료된 장비만 저장할 수 있습니다.');
+    return;
+  }
+
+  savedSlots[slotIdx] = {
+    weaponKey,
+    name:weapon.name,
+    stats:{...currentStats},
+    upgradeSlots,
+    successCount,
+    itemLevel
+  };
+
+  localStorage.setItem('weapon_simulator_slots',JSON.stringify(savedSlots));
+  renderSlots();
+  addLog(`[슬롯 저장] 슬롯 ${slotIdx+1} 저장 완료`,'info');
+}
+
+// 슬롯 불러오기
+function loadFromSlot(slotIdx) {
+  const data = savedSlots[slotIdx];
+
+  if (!data) {
+    alert('해당 슬롯이 비어 있습니다.');
+    return;
+  }
+
+  weaponKey = data.weaponKey || 'engau';
+  weapon = WEAPONS[weaponKey];
+  $('weapon-select').value = weaponKey;
+
+  isCrafted = true;
+  isDestroyed = false;
+  currentStats = {...data.stats};
+  upgradeSlots = data.upgradeSlots;
+  successCount = data.successCount;
+  itemLevel = data.itemLevel;
+
+  updateWeaponLabels();
+  updateUI();
+  switchTab('single');
+
+  addLog(`[슬롯 불러오기] 슬롯 ${slotIdx+1} 장비를 불러왔습니다.`,'info');
+}
+
+// 슬롯 삭제
+function deleteSlot(slotIdx) {
+  savedSlots[slotIdx] = null;
+  localStorage.setItem('weapon_simulator_slots',JSON.stringify(savedSlots));
+  renderSlots();
+  addLog(`[슬롯 삭제] 슬롯 ${slotIdx+1}을 비웠습니다.`,'fail');
+}
+
+function renderSlots() {
+  savedSlots.forEach((data,i) => {
+    const box = $(`slot-info-${i}`);
+
+    if (data) {
+      const w = WEAPONS[data.weaponKey || 'engau'];
+      box.innerHTML =
+        `<strong>${data.name || w.name}</strong><br>` +
+        `공:${data.stats.att} / ${w.mainName}:${data.stats[w.mainKey]} / ` +
+        `${w.subName}:${data.stats[w.subKey]} / Lv.${data.itemLevel}`;
+    } else {
+      box.textContent = '비어 있음';
+    }
+  });
+}
+
+function initSlots() {
+  const raw = localStorage.getItem('weapon_simulator_slots');
+
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) savedSlots = parsed;
+    } catch (e) {
+      savedSlots = [null,null,null];
+    }
+  }
+
+  renderSlots();
+}
+
+// 최초 실행
+currentStats = baseStatsFor();
+updateWeaponLabels();
+initSlots();
+updateUI();
+updateMassStats();
 </script>
 </body>
 </html>
